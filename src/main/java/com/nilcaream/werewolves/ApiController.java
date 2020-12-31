@@ -59,7 +59,7 @@ public class ApiController {
 
     @GetMapping(value = "/player/{playerId}/{gameId}", produces = "application/json")
     public Flow.PlayerStatus playerStatus(@PathVariable String playerId, @PathVariable String gameId) {
-        return flow.playerStatus(playerId, gameId);
+        return flow.playerStatus(gameId, playerId);
     }
 
     private static final class PlayerActionRequest {

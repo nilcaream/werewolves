@@ -5,10 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 public class Player {
 
-    public static final String CENTER = "_CENTER_";
+    public static final String CENTER_PREFIX = "Center";
 
     public enum State {
         WORKING, READY_TO_PLAY, READY_TO_VOTE, DONE
@@ -16,9 +17,9 @@ public class Player {
 
     private String id;
     private String name;
-    private List<Role> roles = new ArrayList<>();
-    private Map<String, Role> knownPlayers = new HashMap<>();
-    private List<String> actions = new ArrayList<>();
+    private final List<Role> roles = new ArrayList<>();
+    private final Map<String, Role> knownPlayers = new HashMap<>();
+    private final List<String> actions = new ArrayList<>();
     private String vote;
     private State state = State.WORKING;
 
@@ -63,16 +64,8 @@ public class Player {
         return knownPlayers;
     }
 
-    public void setKnownPlayers(Map<String, Role> knownPlayers) {
-        this.knownPlayers = knownPlayers;
-    }
-
     public List<String> getActions() {
         return actions;
-    }
-
-    public void setActions(List<String> actions) {
-        this.actions = actions;
     }
 
     public String getId() {
@@ -93,5 +86,18 @@ public class Player {
 
     public List<Role> getRoles() {
         return roles;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Player.class.getSimpleName() + "[", "]")
+                .add("id='" + id + "'")
+                .add("name='" + name + "'")
+                .add("roles=" + roles)
+                .add("knownPlayers=" + knownPlayers)
+                .add("actions=" + actions)
+                .add("vote='" + vote + "'")
+                .add("state=" + state)
+                .toString();
     }
 }

@@ -1,15 +1,17 @@
 package com.nilcaream.werewolves;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 
 public class Game {
 
     private String id;
-    private List<Role> roles;
-    private Set<Player> players = new HashSet<>();
+    private final List<Role> roles = new ArrayList<>();
+    private final Set<Player> players = new HashSet<>();
 
     public String getId() {
         return id;
@@ -23,16 +25,8 @@ public class Game {
         return roles;
     }
 
-    public void setRoles(List<Role> roles) {
-        this.roles = roles;
-    }
-
     public Set<Player> getPlayers() {
         return players;
-    }
-
-    public void setPlayers(Set<Player> players) {
-        this.players = players;
     }
 
     @Override
@@ -46,5 +40,14 @@ public class Game {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Game.class.getSimpleName() + "[", "]")
+                .add("id='" + id + "'")
+                .add("roles=" + roles)
+                .add("players=" + players)
+                .toString();
     }
 }

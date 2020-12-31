@@ -28,7 +28,7 @@ public class Flow {
         games.removeIf(game -> game.getId().equals(gameId));
         Game game = new Game();
         game.setId(gameId);
-        game.setRoles(roles);
+        game.getRoles().addAll(roles);
         games.add(game);
         logger.info("Game created: {} - {}", gameId, roles);
         return game;
@@ -75,17 +75,25 @@ public class Flow {
     }
 
     private Player createCenter(int index) {
-        Player player = new Player(Player.CENTER + index, Player.CENTER);
+        Player player = new Player(Player.CENTER_PREFIX + index, Player.CENTER_PREFIX + index);
         player.setState(Player.State.READY_TO_PLAY);
         return player;
     }
 
     public static final class PlayerStatus {
-        Player.State status;
-        Map<String, Role> players;
+        private Player.State status;
+        private Map<String, Role> players;
+
+        public Player.State getStatus() {
+            return status;
+        }
+
+        public Map<String, Role> getPlayers() {
+            return players;
+        }
     }
 
-    public PlayerStatus playerStatus(String playerId, String gameId) {
+    public PlayerStatus playerStatus(String gameId, String playerId) {
         Game game = getGame(gameId);
         Player player = getPlayer(game, playerId);
 
@@ -93,7 +101,7 @@ public class Flow {
         if (game.getPlayers().stream().allMatch(p -> p.getState() == Player.State.READY_TO_PLAY)) {
             status.status = Player.State.READY_TO_PLAY;
             status.players = game.getPlayers().stream()
-                    .collect(Collectors.toMap(Player::getName, p -> player.getKnownPlayers().getOrDefault(p.getId(), Role.UNKNOWN)));
+                    .collect(Collectors.toMap(Player::getId, p -> player.getKnownPlayers().getOrDefault(p.getId(), Role.UNKNOWN)));
         } else {
             status.status = Player.State.WORKING;
         }
@@ -115,7 +123,8 @@ public class Flow {
                     .orElseThrow();
             player.getRoles().add(newRole);
         } else {
-            player.setActions(actions);
+            player.getActions().clear();
+            player.getActions().addAll(actions);
             player.setState(Player.State.READY_TO_PLAY);
         }
 
@@ -141,50 +150,63 @@ public class Flow {
 
     private void executeAction(Game game, Role initialRole) {
         game.getPlayers().stream()
-                .filter(p -> !p.getName().equals(Player.CENTER))
-                .filter(p -> first(p.getRoles()) == initialRole)
+                .filter(p -> !p.getId().startsWith(Player.CENTER_PREFIX))
+                .filter(p -> getEffectiveInitialRole(p) == initialRole)
                 .findFirst()
                 .ifPresent(p -> executeAction(game, p));
     }
 
     private void executeAction(Game game, Player player) {
         Role role = getEffectiveInitialRole(player);
-        Stream<Player> players = game.getPlayers().stream()
-                .filter(p -> !p.getName().equals(Player.CENTER));
-
-        player.getKnownPlayers().put(player.getId(), role);
+        Set<Player> players = game.getPlayers().stream()
+                .filter(p -> !p.getId().startsWith(Player.CENTER_PREFIX))
+                .collect(Collectors.toSet());
 
         if (role == Role.MINION) {
-            players.filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF)
+            players.stream()
+                    .filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF)
                     .forEach(w -> player.getKnownPlayers().put(w.getId(), Role.WEREWOLF));
         } else if (role == Role.WEREWOLF) {
-            players.filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF)
-                    .forEach(w -> player.getKnownPlayers().put(w.getId(), Role.WEREWOLF));
+            Stream<Player> werewolves = players.stream().filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF);
+            if (werewolves.count() == 1) {
+                Player center = getPlayer(game, player.getActions().get(0));
+                player.getKnownPlayers().put(center.getId(), center.getRoles().get(0));
+            } else {
+                werewolves.forEach(w -> player.getKnownPlayers().put(w.getId(), Role.WEREWOLF));
+            }
         } else if (role == Role.MASON) {
-            players.filter(p -> getEffectiveInitialRole(p) == Role.MASON)
+            players.stream()
+                    .filter(p -> getEffectiveInitialRole(p) == Role.MASON)
                     .forEach(w -> player.getKnownPlayers().put(w.getId(), Role.MASON));
         } else if (role == Role.SEER) {
-            players.filter(p -> player.getActions().contains(p.getId()))
+            players.stream()
+                    .filter(p -> player.getActions().contains(p.getId()))
                     .forEach(w -> player.getKnownPlayers().put(w.getId(), getCardRole(player)));
         } else if (role == Role.ROBBER && !player.getActions().isEmpty()) {
-            Player robbedPlayer = players.filter(p -> p.getId().equals(player.getActions().get(0)))
+            Player robbedPlayer = players.stream()
+                    .filter(p -> p.getId().equals(player.getActions().get(0)))
                     .findFirst()
                     .orElseThrow();
-            player.getRoles().add(getCardRole(robbedPlayer));
+            Role robbedRole = getCardRole(robbedPlayer);
+            player.getRoles().add(robbedRole);
             robbedPlayer.getRoles().add(Role.ROBBER);
             player.getKnownPlayers().put(robbedPlayer.getId(), Role.ROBBER);
+            player.getKnownPlayers().put(player.getId(), robbedRole);
         } else if (role == Role.TROUBLEMAKER && !player.getActions().isEmpty()) {
-            Player targetA = players.filter(p -> p.getId().equals(player.getActions().get(0)))
+            Player targetA = players.stream()
+                    .filter(p -> p.getId().equals(player.getActions().get(0)))
                     .findFirst()
                     .orElseThrow();
-            Player targetB = players.filter(p -> p.getId().equals(player.getActions().get(1)))
+            Player targetB = players.stream()
+                    .filter(p -> p.getId().equals(player.getActions().get(1)))
                     .findFirst()
                     .orElseThrow();
             Role roleA = last(targetA.getRoles());
             targetA.getRoles().add(last(targetB.getRoles()));
             targetB.getRoles().add(roleA);
         } else if (role == Role.DRUNK && !player.getActions().isEmpty()) {
-            Player targetA = players.filter(p -> p.getId().equals(player.getActions().get(0)))
+            Player targetA = players.stream()
+                    .filter(p -> p.getId().equals(player.getActions().get(0)))
                     .findFirst()
                     .orElseThrow();
             Role roleA = last(targetA.getRoles());
