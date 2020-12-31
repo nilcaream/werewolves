@@ -1,5 +1,6 @@
 package com.nilcaream.werewolves;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -8,7 +9,7 @@ public class Game {
 
     private String id;
     private List<Role> roles;
-    private Set<Player> players;
+    private Set<Player> players = new HashSet<>();
 
     public String getId() {
         return id;
