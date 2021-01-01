@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Component
 public class Flow {
@@ -156,8 +155,7 @@ public class Flow {
         game.getPlayers().stream()
                 .filter(p -> !p.getId().startsWith(Player.CENTER_PREFIX))
                 .filter(p -> getEffectiveInitialRole(p) == initialRole)
-                .findFirst()
-                .ifPresent(p -> executeAction(game, p));
+                .forEach(p -> executeAction(game, p));
     }
 
     private void executeAction(Game game, Player player) {
@@ -171,8 +169,11 @@ public class Flow {
                     .filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF)
                     .forEach(w -> player.getKnownPlayers().put(w.getId(), Role.WEREWOLF));
         } else if (role == Role.WEREWOLF) {
-            Stream<Player> werewolves = players.stream().filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF);
-            if (werewolves.count() == 1) {
+            List<Player> werewolves = players.stream()
+                    .filter(p -> getEffectiveInitialRole(p) == Role.WEREWOLF)
+                    .filter(p -> !p.getId().equals(player.getId()))
+                    .collect(Collectors.toList());
+            if (werewolves.isEmpty()) {
                 Player center = getPlayer(game, player.getActions().get(0));
                 player.getKnownPlayers().put(center.getId(), center.getRoles().get(0));
             } else {

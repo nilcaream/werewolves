@@ -129,6 +129,24 @@ class FlowTest {
         assertState(game, "p3", Role.TROUBLEMAKER);
     }
 
+    @Test
+    void shouldExecuteGame4a() {
+        // given
+        Game game = createGame(of(Role.WEREWOLF, Role.WEREWOLF, Role.VILLAGER, Role.VILLAGER), of(Role.SEER, Role.TROUBLEMAKER, Role.ROBBER));
+
+        // when
+        underTest.executeAction("game1", "p0", emptyList());
+        underTest.executeAction("game1", "p1", emptyList());
+        underTest.executeAction("game1", "p2", emptyList());
+        underTest.executeAction("game1", "p3", emptyList());
+
+        // then
+        assertState(game, "p0", Role.WEREWOLF, "p1", Role.WEREWOLF);
+        assertState(game, "p1", Role.WEREWOLF, "p0", Role.WEREWOLF);
+        assertState(game, "p2", Role.VILLAGER);
+        assertState(game, "p3", Role.VILLAGER);
+    }
+
     private void startGame(Game game, Role... roles) {
         underTest.startGame("game1");
         List<Player> players = game.getPlayers().stream().sorted(Comparator.comparing(Player::getId)).collect(Collectors.toList());
@@ -185,9 +203,9 @@ class FlowTest {
         Flow.PlayerStatus status = underTest.playerStatus(game.getId(), playerId);
         Player player = game.getPlayers().stream().filter(p -> p.getId().equals(playerId)).findFirst().orElseThrow();
         Role role = player.getRoles().get(player.getRoles().size() - 1);
-        assertThat(role).withFailMessage("Invalid player role").isEqualByComparingTo(expectedRole);
+        assertThat(role).isEqualByComparingTo(expectedRole);
 
-        assertThat(status.getPlayers().get(pId1)).withFailMessage("Invalid known role").isEqualByComparingTo(expectedRole1);
+        assertThat(status.getPlayers().get(pId1)).isEqualByComparingTo(expectedRole1);
 
         Set<Role> otherRoles = status.getPlayers().entrySet().stream()
                 .filter(e -> !e.getKey().equals(pId1))
