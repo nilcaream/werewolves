@@ -146,6 +146,10 @@ public class Flow {
         executeAction(game, Role.TROUBLEMAKER);
         executeAction(game, Role.DRUNK);
         executeAction(game, Role.INSOMNIAC);
+
+        game.getPlayers().stream()
+                .sorted(Comparator.comparing(Player::getName))
+                .forEach(p -> logger.info("Final: {} - {} {} ({})", game.getId(), last(p.getRoles()), p.getName(), p.getId()));
     }
 
     private void executeAction(Game game, Role initialRole) {
@@ -181,7 +185,7 @@ public class Flow {
         } else if (role == Role.SEER) {
             players.stream()
                     .filter(p -> player.getActions().contains(p.getId()))
-                    .forEach(w -> player.getKnownPlayers().put(w.getId(), getCardRole(player)));
+                    .forEach(w -> player.getKnownPlayers().put(w.getId(), getCardRole(w)));
         } else if (role == Role.ROBBER && !player.getActions().isEmpty()) {
             Player robbedPlayer = players.stream()
                     .filter(p -> p.getId().equals(player.getActions().get(0)))
@@ -215,6 +219,8 @@ public class Flow {
         } else if (role == Role.INSOMNIAC) {
             player.getKnownPlayers().put(player.getId(), last(player.getRoles()));
         }
+
+        player.getKnownPlayers().forEach((knownId, knownRole) -> logger.info("Execution: {} - {} {} ({}) - {} ({}) {}", game.getId(), role.name(), player.getName(), player.getId(), knownRole.name(), getPlayer(game, knownId).getName(), knownId));
     }
 
     private Role getEffectiveInitialRole(Player player) {
